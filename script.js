@@ -145,6 +145,7 @@ function initializeApp() {
 	setupDailyPrompt();
 	setupInsights();
 	setupGoals();
+	setupStatCardNavigation();
 	updateXPDisplay();
 	updateStreaks();
 	checkDailyLogin();
@@ -208,6 +209,36 @@ function setupNavigation() {
 					renderInsights();
 				}
 			}
+		});
+	});
+}
+
+function setupStatCardNavigation() {
+	const statCards = document.querySelectorAll('.stat-card[data-page]');
+
+	statCards.forEach((card) => {
+		card.addEventListener('click', () => {
+			const targetPage = card.getAttribute('data-page');
+
+			// Hide all pages
+			document.querySelectorAll('.page').forEach((page) => {
+				page.classList.remove('active');
+			});
+
+			// Show target page
+			document.getElementById(targetPage).classList.add('active');
+
+			// Update sidebar navigation
+			document.querySelectorAll('.nav-item').forEach((navItem) => {
+				navItem.classList.remove('active');
+			});
+			document
+				.querySelector(`.nav-item[data-page="${targetPage}"]`)
+				.classList.add('active');
+
+			// Update state
+			state.currentPage = targetPage;
+			saveState();
 		});
 	});
 }

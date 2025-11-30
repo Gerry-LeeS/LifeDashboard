@@ -1390,6 +1390,12 @@ HABITS PAGE
 	transform: translateY(-8px);
 	border-color: var(--accent-light);
 }
+
+.tasks-card:hover,
+.habits-card:hover {
+	cursor: pointer;
+}
+
 .habit-card:hover::before {
 	transform: scaleX(1);
 }
