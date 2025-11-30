@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Life Dashboard</title>
+		<link rel="stylesheet" href="styles.css" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Shadows+Into+Light+Two&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body>
+		<div class="dashboard">
+			<!-- Sidebar Navigation -->
+
+			<aside class="sidebar">
+				<div class="sidebar-header">
+					<h1 class="logo">✨ Life</h1>
+					<div class="user-stats">
+						<div class="level-badge" id="levelBadge">
+							<span class="level-number" id="levelNumber">1</span>
+							<span class="level-title" id="levelTitle">Novice</span>
+						</div>
+						<div class="xp-bar-container">
+							<div class="xp-bar" id="xpBar"></div>
+						</div>
+						<div class="xp-text" id="xpText">0 / 100 XP</div>
+					</div>
+				</div>
+
+				<nav class="nav-menu">
+					<!-- DASHBOARD (no header) -->
+					<div class="nav-section">
+						<button class="nav-item active" data-page="overview">
+							<span class="nav-icon">🏠</span>
+							<span class="nav-text">Overview</span>
+						</button>
+					</div>
+
+					<!-- PRODUCTIVITY (separated by line, no text) -->
+					<div class="nav-section">
+						<div class="nav-section-header">Productivity</div>
+						<button class="nav-item" data-page="tasks">
+							<span class="nav-icon">✓</span>
+							<span class="nav-text">Tasks</span>
+						</button>
+						<button class="nav-item" data-page="habits">
+							<span class="nav-icon">🔥</span>
+							<span class="nav-text">Habits</span>
+						</button>
+						<button class="nav-item" data-page="goals">
+							<span class="nav-icon">🎯</span>
+							<span class="nav-text">Goals</span>
+						</button>
+					</div>
+
+					<!-- REFLECTION (separated by line, no text) -->
+					<div class="nav-section">
+						<div class="nav-section-header">Reflection</div>
+						<button class="nav-item" data-page="journal">
+							<span class="nav-icon">📖</span>
+							<span class="nav-text">Journal</span>
+						</button>
+						<button class="nav-item" data-page="mood">
+							<span class="nav-icon">💭</span>
+							<span class="nav-text">Mood</span>
+						</button>
+						<button class="nav-item" data-page="gratitude">
+							<span class="nav-icon">🙏</span>
+							<span class="nav-text">Gratitude</span>
+						</button>
+					</div>
+
+					<!-- ANALYTICS (separated by line, no text) -->
+					<div class="nav-section">
+						<div class="nav-section-header">Analytics</div>
+						<button class="nav-item" data-page="insights">
+							<span class="nav-icon">📊</span>
+							<span class="nav-text">Insights</span>
+						</button>
+					</div>
+				</nav>
+
+				<div class="sidebar-footer">
+					<button class="settings-btn" id="settingsBtn">
+						<span class="nav-icon">⚙️</span>
+						<span class="nav-text">Themes</span>
+					</button>
+
+					<div class="sidebar-copyright">
+						© 2025 Life Dashboard<br />All rights reserved
+					</div>
+				</div>
+			</aside>
+
+			<!-- Main Content -->
+			<main class="main-content">
+				<!-- Overview Page -->
+				<div class="page active" id="overview">
+					<header class="page-header">
+						<div>
+							<h2 class="page-title">Good Morning ☀️</h2>
+							<p class="page-subtitle" id="currentDate"></p>
+						</div>
+					</header>
+
+					<div class="overview-grid">
+						<div class="stat-card">
+							<div class="stat-icon">✓</div>
+							<div class="stat-content">
+								<h3 class="stat-value" id="statTodos">0</h3>
+								<p class="stat-label">Tasks Today</p>
+							</div>
+						</div>
+						<div class="stat-card">
+							<div class="stat-icon">🔥</div>
+							<div class="stat-content">
+								<h3 class="stat-value" id="statHabits">0</h3>
+								<p class="stat-label">Habits Completed</p>
+							</div>
+						</div>
+						<div class="stat-card">
+							<div class="stat-icon">📅</div>
+							<div class="stat-content">
+								<h3 class="stat-value" id="statStreak">0</h3>
+								<p class="stat-label">Day Streak</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="overview-sections">
+						<div class="overview-widget">
+							<h3 class="widget-title">Today's Focus</h3>
+							<div class="quick-todos" id="quickTodos">
+								<p class="empty-state">
+									No tasks yet. Add some in the Tasks page!
+								</p>
+							</div>
+						</div>
+
+						<div class="overview-widget calendar-widget-mini">
+							<h3 class="widget-title">Calendar</h3>
+							<div class="mini-calendar" id="miniCalendar"></div>
+						</div>
+					</div>
+
+					<div class="prompt-card">
+						<h3 class="prompt-title">✨ Daily Prompt</h3>
+						<p class="prompt-text" id="dailyPrompt">Loading your prompt...</p>
+						<button class="prompt-btn" id="newPromptBtn">Get New Prompt</button>
+					</div>
+
+					<div class="quote-card">
+						<p class="quote-text" id="dailyQuote">
+							"The secret of getting ahead is getting started."
+						</p>
+						<p class="quote-author">— Mark Twain</p>
+					</div>
+				</div>
+
+				<!-- Tasks Page -->
+				<div class="page" id="tasks">
+					<header class="page-header">
+						<h2 class="page-title">Tasks</h2>
+						<div class="header-actions">
+							<button class="btn-primary" id="addTaskBtn">+ New Task</button>
+						</div>
+					</header>
+
+					<div class="tasks-container">
+						<div
+							class="task-input-card"
+							id="taskInputCard"
+							style="display: none"
+						>
+							<input
+								type="text"
+								id="todoInput"
+								placeholder="What needs to be done?"
+								class="task-input"
+							/>
+							<div class="task-input-actions">
+								<button class="btn-secondary" id="cancelTaskBtn">Cancel</button>
+								<button class="btn-primary" id="saveTaskBtn">Add Task</button>
+							</div>
+						</div>
+						<div class="tasks-list" id="todoList"></div>
+					</div>
+				</div>
+
+				<!-- Habits Page -->
+				<div class="page" id="habits">
+					<header class="page-header">
+						<h2 class="page-title">Daily Habits</h2>
+						<div class="header-actions">
+							<button class="btn-primary" id="addHabitBtn">+ New Habit</button>
+						</div>
+					</header>
+
+					<div class="habits-container">
+						<div
+							class="habit-input-card"
+							id="habitInputCard"
+							style="display: none"
+						>
+							<input
+								type="text"
+								id="habitInput"
+								placeholder="New habit..."
+								class="task-input"
+							/>
+							<div class="task-input-actions">
+								<button class="btn-secondary" id="cancelHabitBtn">
+									Cancel
+								</button>
+								<button class="btn-primary" id="saveHabitBtn">Add Habit</button>
+							</div>
+						</div>
+						<div class="habits-grid" id="habitsList"></div>
+					</div>
+				</div>
+
+				<div class="page" id="goals">
+					<header class="page-header">
+						<h2 class="page-title">🎯 Goals</h2>
+						<div class="header-actions">
+							<button class="btn-primary" id="addGoalBtn">+ New Goal</button>
+						</div>
+					</header>
+
+					<div class="goals-container">
+						<!-- Goal Categories Filter -->
+						<div class="goals-filter">
+							<button class="filter-btn active" data-filter="all">
+								All Goals
+							</button>
+							<button class="filter-btn" data-filter="active">Active</button>
+							<button class="filter-btn" data-filter="completed">
+								Completed
+							</button>
+						</div>
+
+						<!-- Goals Grid -->
+						<div class="goals-grid" id="goalsGrid">
+							<p class="empty-state">
+								No goals yet. Click "New Goal" to set your first goal!
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- Goal Creation/Edit Modal -->
+				<div class="modal" id="goalModal">
+					<div class="modal-content goal-modal-content">
+						<div class="modal-header">
+							<h3 id="goalModalTitle">Create New Goal</h3>
+							<button class="modal-close" id="closeGoalModal">×</button>
+						</div>
+						<div class="modal-body">
+							<div class="form-group">
+								<label for="goalTitle">Goal Title</label>
+								<input
+									type="text"
+									id="goalTitle"
+									class="goal-input"
+									placeholder="e.g., Read 12 books this year"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="goalDescription">Description (optional)</label>
+								<textarea
+									id="goalDescription"
+									class="goal-textarea"
+									placeholder="Why is this goal important to you?"
+									rows="3"
+								></textarea>
+							</div>
+
+							<div class="form-row">
+								<div class="form-group">
+									<label for="goalType">Goal Type</label>
+									<select id="goalType" class="goal-select">
+										<option value="numeric">Numeric Target</option>
+										<option value="habit">Habit Streak</option>
+										<option value="deadline">By Deadline</option>
+									</select>
+								</div>
+
+								<div class="form-group" id="targetGroup">
+									<label for="goalTarget">Target</label>
+									<input
+										type="number"
+										id="goalTarget"
+										class="goal-input"
+										placeholder="e.g., 12"
+										min="1"
+									/>
+								</div>
+							</div>
+
+							<div class="form-group" id="unitGroup">
+								<label for="goalUnit">Unit (optional)</label>
+								<input
+									type="text"
+									id="goalUnit"
+									class="goal-input"
+									placeholder="e.g., books, workouts, days"
+								/>
+							</div>
+
+							<div class="form-group" id="deadlineGroup">
+								<label for="goalDeadline">Deadline</label>
+								<input type="date" id="goalDeadline" class="goal-input" />
+							</div>
+
+							<div class="form-group">
+								<label for="goalCategory">Category</label>
+								<select id="goalCategory" class="goal-select">
+									<option value="health">🏃 Health & Fitness</option>
+									<option value="learning">📚 Learning & Growth</option>
+									<option value="career">💼 Career & Finance</option>
+									<option value="relationships">❤️ Relationships</option>
+									<option value="creativity">🎨 Creativity & Hobbies</option>
+									<option value="personal">✨ Personal Development</option>
+									<option value="other">📌 Other</option>
+								</select>
+							</div>
+
+							<div class="goal-modal-actions">
+								<button class="btn-secondary" id="cancelGoalBtn">Cancel</button>
+								<button class="btn-primary" id="saveGoalBtn">
+									Create Goal
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Goal Progress Update Modal -->
+				<div class="modal" id="progressModal">
+					<div class="modal-content progress-modal-content">
+						<div class="modal-header">
+							<h3>Update Progress</h3>
+							<button class="modal-close" id="closeProgressModal">×</button>
+						</div>
+						<div class="modal-body">
+							<div class="current-progress-display" id="currentProgressDisplay">
+								<div class="progress-label">Current Progress</div>
+								<div class="progress-value" id="currentProgressValue">
+									0 / 10
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label for="progressIncrement">Add Progress</label>
+								<input
+									type="number"
+									id="progressIncrement"
+									class="goal-input"
+									placeholder="Enter amount to add"
+									min="0"
+									step="0.1"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="progressNote">Note (optional)</label>
+								<textarea
+									id="progressNote"
+									class="goal-textarea"
+									placeholder="What did you accomplish?"
+									rows="2"
+								></textarea>
+							</div>
+
+							<div class="progress-modal-actions">
+								<button class="btn-secondary" id="cancelProgressBtn">
+									Cancel
+								</button>
+								<button class="btn-primary" id="saveProgressBtn">Update</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="page" id="journal">
+					<header class="page-header">
+						<h2 class="page-title">Journal</h2>
+						<div class="header-actions">
+							<button class="btn-primary" id="newJournalBtn">
+								+ New Entry
+							</button>
+						</div>
+					</header>
+
+					<div class="journal-container">
+						<div class="journal-entries-grid" id="journalEntriesGrid">
+							<p class="empty-state">
+								No journal entries yet. Click "New Entry" to start!
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- Journal Entry Modal -->
+				<div class="modal" id="journalModal">
+					<div class="modal-content journal-modal-content">
+						<div class="modal-header">
+							<h3 id="journalModalTitle">New Journal Entry</h3>
+							<button class="modal-close" id="closeJournalModal">×</button>
+						</div>
+						<div class="modal-body">
+							<div class="journal-date" id="journalModalDate"></div>
+							<textarea
+								id="journalModalText"
+								placeholder="What's on your mind?"
+							></textarea>
+							<div class="journal-modal-actions">
+								<button
+									class="btn-secondary"
+									id="deleteJournalBtn"
+									style="display: none"
+								>
+									Delete Entry
+								</button>
+								<button class="btn-primary" id="saveJournalModalBtn">
+									Save Entry
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Mood Page -->
+				<div class="page" id="mood">
+					<header class="page-header">
+						<h2 class="page-title">Mood Tracker</h2>
+					</header>
+
+					<div class="mood-container">
+						<div class="mood-selector">
+							<h3 class="mood-question">How are you feeling today?</h3>
+							<div class="mood-options">
+								<button class="mood-btn" data-mood="amazing" title="Amazing">
+									<span class="mood-emoji">😄</span>
+									<span class="mood-label">Amazing</span>
+								</button>
+								<button class="mood-btn" data-mood="good" title="Good">
+									<span class="mood-emoji">🙂</span>
+									<span class="mood-label">Good</span>
+								</button>
+								<button class="mood-btn" data-mood="okay" title="Okay">
+									<span class="mood-emoji">😐</span>
+									<span class="mood-label">Okay</span>
+								</button>
+								<button class="mood-btn" data-mood="bad" title="Bad">
+									<span class="mood-emoji">😔</span>
+									<span class="mood-label">Bad</span>
+								</button>
+								<button class="mood-btn" data-mood="terrible" title="Terrible">
+									<span class="mood-emoji">😢</span>
+									<span class="mood-label">Terrible</span>
+								</button>
+							</div>
+						</div>
+
+						<div class="energy-selector">
+							<h3 class="energy-question">What's your energy level today?</h3>
+							<div class="energy-slider-container">
+								<input
+									type="range"
+									min="1"
+									max="10"
+									value="5"
+									class="energy-slider"
+									id="energySlider"
+								/>
+								<div class="energy-value" id="energyValue">5</div>
+								<div class="energy-labels">
+									<span>Exhausted</span>
+									<span>Energized</span>
+								</div>
+							</div>
+						</div>
+
+						<div class="energy-history-section">
+							<h3 class="section-title">Your Energy Journey</h3>
+							<div class="energy-timeline" id="energyHistory"></div>
+						</div>
+
+						<div class="mood-history-section">
+							<h3 class="section-title">Your Mood Journey</h3>
+							<div class="mood-timeline" id="moodHistory"></div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Insights Page -->
+				<div class="page" id="insights">
+					<header class="page-header">
+						<h2 class="page-title">📊 Insights & Analytics</h2>
+					</header>
+
+					<div class="insights-container">
+						<div class="insights-grid">
+							<div class="insight-card">
+								<div class="insight-icon">🔥</div>
+								<div class="insight-content">
+									<h3 class="insight-value" id="currentStreakValue">0</h3>
+									<p class="insight-label">Current Streak</p>
+									<p class="insight-sublabel">days in a row</p>
+								</div>
+							</div>
+							<div class="insight-card">
+								<div class="insight-icon">🏆</div>
+								<div class="insight-content">
+									<h3 class="insight-value" id="longestStreakValue">0</h3>
+									<p class="insight-label">Longest Streak</p>
+									<p class="insight-sublabel">personal best</p>
+								</div>
+							</div>
+							<div class="insight-card">
+								<div class="insight-icon">✓</div>
+								<div class="insight-content">
+									<h3 class="insight-value" id="totalTasksValue">0</h3>
+									<p class="insight-label">Total Tasks</p>
+									<p class="insight-sublabel">completed all time</p>
+								</div>
+							</div>
+							<div class="insight-card">
+								<div class="insight-icon">📈</div>
+								<div class="insight-content">
+									<h3 class="insight-value" id="weeklyProgressValue">0%</h3>
+									<p class="insight-label">This Week</p>
+									<p class="insight-sublabel">task completion</p>
+								</div>
+							</div>
+						</div>
+
+						<div class="weekly-review-section">
+							<h3 class="section-title">📅 Weekly Review</h3>
+							<div class="weekly-review-card" id="weeklyReviewCard">
+								<p class="empty-state">
+									Complete at least 7 days of activity to see your weekly review
+								</p>
+							</div>
+						</div>
+
+						<div class="insights-section">
+							<h3 class="section-title">🧠 Smart Insights</h3>
+							<div class="insights-list" id="insightsList">
+								<p class="empty-state">
+									Keep logging your activities to unlock personalized insights!
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Gratitude Page -->
+				<div class="page" id="gratitude">
+					<header class="page-header">
+						<h2 class="page-title">🙏 Gratitude Journal</h2>
+					</header>
+
+					<div class="gratitude-container">
+						<div class="gratitude-input-section">
+							<h3 class="gratitude-question">
+								What are you grateful for today?
+							</h3>
+							<div class="gratitude-inputs">
+								<input
+									type="text"
+									class="gratitude-input"
+									id="gratitude1"
+									placeholder="First thing..."
+								/>
+								<input
+									type="text"
+									class="gratitude-input"
+									id="gratitude2"
+									placeholder="Second thing..."
+								/>
+								<input
+									type="text"
+									class="gratitude-input"
+									id="gratitude3"
+									placeholder="Third thing..."
+								/>
+							</div>
+							<button class="btn-primary" id="saveGratitude">
+								Save Today's Gratitudes
+							</button>
+						</div>
+
+						<div class="gratitude-history-section">
+							<h3 class="section-title">Your Gratitude Journey</h3>
+							<div class="gratitude-timeline" id="gratitudeHistory"></div>
+						</div>
+					</div>
+				</div>
+			</main>
+
+			<!-- Settings Modal -->
+			<div class="modal" id="settingsModal">
+				<div class="modal-content settings-content">
+					<div class="modal-header">
+						<h3>Settings</h3>
+						<button class="modal-close" id="closeSettings">×</button>
+					</div>
+					<div class="modal-body">
+						<div class="settings-section">
+							<h4 class="settings-title">Themes</h4>
+							<div class="themes-grid">
+								<button class="theme-card" data-theme="light">
+									<div class="theme-preview light-preview"></div>
+									<span class="theme-name">Light</span>
+								</button>
+								<button class="theme-card" data-theme="dark">
+									<div class="theme-preview dark-preview"></div>
+									<span class="theme-name">Dark</span>
+								</button>
+								<button class="theme-card" data-theme="galaxy">
+									<div class="theme-preview galaxy-preview"></div>
+									<span class="theme-name">Galaxy</span>
+								</button>
+								<button class="theme-card" data-theme="glass">
+									<div class="theme-preview glass-preview"></div>
+									<span class="theme-name">Glass</span>
+								</button>
+								<button class="theme-card" data-theme="ocean">
+									<div class="theme-preview ocean-preview"></div>
+									<span class="theme-name">Ocean</span>
+								</button>
+								<button class="theme-card" data-theme="sunset">
+									<div class="theme-preview sunset-preview"></div>
+									<span class="theme-name">Sunset</span>
+								</button>
+								<button class="theme-card" data-theme="midnight">
+									<div class="theme-preview midnight-preview"></div>
+									<span class="theme-name">Midnight</span>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script src="script.js"></script>
+	</body>
+</html>
