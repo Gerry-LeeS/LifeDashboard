@@ -284,14 +284,30 @@
 								<div class="form-group">
 									<label for="goalType">Goal Type</label>
 									<select id="goalType" class="goal-select">
-										<option value="numeric">Numeric Target</option>
-										<option value="habit">Habit Streak</option>
-										<option value="deadline">By Deadline</option>
+										<option value="numeric">
+											📊 Numeric Target (e.g., Read 12 books)
+										</option>
+										<option value="habit">
+											🔥 Daily Streak (e.g., Meditate 30 days)
+										</option>
+										<option value="deadline">📅 Complete by Deadline</option>
+										<option value="weekly">
+											📆 Weekly Target (e.g., Exercise 3x/week)
+										</option>
+										<option value="yes-no">
+											✅ Yes/No Daily (e.g., Did I drink water?)
+										</option>
+										<option value="percentage">
+											📈 Percentage Goal (e.g., 80% completion)
+										</option>
+										<option value="milestone">
+											🎯 Milestone Based (e.g., 3 checkpoints)
+										</option>
 									</select>
 								</div>
 
 								<div class="form-group" id="targetGroup">
-									<label for="goalTarget">Target</label>
+									<label for="goalTarget" id="targetLabel">Target</label>
 									<input
 										type="number"
 										id="goalTarget"
@@ -300,6 +316,45 @@
 										min="1"
 									/>
 								</div>
+							</div>
+
+							<div
+								class="form-group"
+								id="weeklyTargetGroup"
+								style="display: none"
+							>
+								<label for="weeklyTarget">Times per Week</label>
+								<input
+									type="number"
+									id="weeklyTarget"
+									class="goal-input"
+									placeholder="e.g., 3"
+									min="1"
+									max="7"
+								/>
+							</div>
+
+							<div
+								class="form-group"
+								id="milestonesGroup"
+								style="display: none"
+							>
+								<label for="milestones">Milestones (one per line)</label>
+								<textarea
+									id="milestones"
+									class="goal-textarea"
+									placeholder="First milestone&#10;Second milestone&#10;Third milestone"
+									rows="5"
+									style="
+										width: 100%;
+										padding: 12px;
+										border: 2px solid var(--border);
+										border-radius: 8px;
+										font-family: inherit;
+										font-size: 14px;
+										resize: vertical;
+									"
+								></textarea>
 							</div>
 
 							<div class="form-group" id="unitGroup">
@@ -506,6 +561,7 @@
 					</header>
 
 					<div class="insights-container">
+						<!-- 1. Quick Stats at Top -->
 						<div class="insights-grid">
 							<div class="insight-card">
 								<div class="insight-icon">🔥</div>
@@ -541,6 +597,87 @@
 							</div>
 						</div>
 
+						<!-- 2. Performance Patterns -->
+						<div class="analytics-section">
+							<h3 class="section-title">📈 Performance Patterns</h3>
+							<div class="performance-grid">
+								<div class="performance-card">
+									<div class="performance-icon">🌟</div>
+									<div class="performance-content">
+										<div class="performance-value" id="bestDayValue">-</div>
+										<div class="performance-label">Most Productive Day</div>
+									</div>
+								</div>
+								<div class="performance-card">
+									<div class="performance-icon">⏰</div>
+									<div class="performance-content">
+										<div class="performance-value" id="avgTasksValue">0</div>
+										<div class="performance-label">Avg Tasks/Day</div>
+									</div>
+								</div>
+								<div class="performance-card">
+									<div class="performance-icon">🎯</div>
+									<div class="performance-content">
+										<div class="performance-value" id="completionRateValue">
+											0%
+										</div>
+										<div class="performance-label">Completion Rate</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- 3. Activity Heatmap -->
+						<div class="analytics-section">
+							<h3 class="section-title">📅 Activity Heatmap</h3>
+							<div class="heatmap-container" id="activityHeatmap">
+								<p class="empty-state">
+									Track your activity for 7+ days to see the heatmap!
+								</p>
+							</div>
+						</div>
+
+						<!-- 4. Productivity Chart -->
+						<div class="analytics-section">
+							<h3 class="section-title">✅ Productivity Overview</h3>
+							<div class="chart-card-full">
+								<h4 class="chart-title">
+									Tasks & Habits Completion (Last 30 Days)
+								</h4>
+								<canvas
+									id="productivityChart"
+									width="800"
+									height="300"
+								></canvas>
+							</div>
+						</div>
+
+						<!-- 5. Mood & Energy Charts -->
+						<div class="analytics-section">
+							<h3 class="section-title">📊 Mood & Energy Trends</h3>
+							<div class="charts-grid">
+								<div class="chart-card">
+									<h4 class="chart-title">Mood Distribution</h4>
+									<canvas id="moodChart" width="400" height="200"></canvas>
+								</div>
+								<div class="chart-card">
+									<h4 class="chart-title">Energy Levels (Last 7 Days)</h4>
+									<canvas id="energyChart" width="400" height="200"></canvas>
+								</div>
+							</div>
+						</div>
+
+						<!-- 6. Goals Progress -->
+						<div class="analytics-section">
+							<h3 class="section-title">🎯 Goals Progress</h3>
+							<div class="goals-progress-grid" id="goalsProgressGrid">
+								<p class="empty-state">
+									No goals yet. Create goals to see progress!
+								</p>
+							</div>
+						</div>
+
+						<!-- 7. Weekly Review -->
 						<div class="weekly-review-section">
 							<h3 class="section-title">📅 Weekly Review</h3>
 							<div class="weekly-review-card" id="weeklyReviewCard">
@@ -550,6 +687,7 @@
 							</div>
 						</div>
 
+						<!-- 8. Smart Insights -->
 						<div class="insights-section">
 							<h3 class="section-title">🧠 Smart Insights</h3>
 							<div class="insights-list" id="insightsList">
@@ -645,11 +783,87 @@
 									<span class="theme-name">Midnight</span>
 								</button>
 							</div>
+
+							<div class="settings-section">
+								<h4 class="settings-title data-title">Data Management</h4>
+
+								<div class="data-management-grid">
+									<!-- Export Data -->
+									<div class="data-action-card">
+										<div class="data-action-icon">💾</div>
+										<h5 class="data-action-title">Export Data</h5>
+										<p class="data-action-description">
+											Download all your data as a backup file
+										</p>
+										<button class="btn-secondary" id="exportDataBtn">
+											Export as JSON
+										</button>
+									</div>
+
+									<!-- Import Data -->
+									<div class="data-action-card">
+										<div class="data-action-icon">📥</div>
+										<h5 class="data-action-title">Import Data</h5>
+										<p class="data-action-description">
+											Restore from a previous backup
+										</p>
+										<input
+											type="file"
+											id="importDataInput"
+											accept=".json"
+											style="display: none"
+										/>
+										<button class="btn-secondary" id="importDataBtn">
+											Import Backup
+										</button>
+									</div>
+
+									<!-- Clear All Data -->
+									<div class="data-action-card danger">
+										<div class="data-action-icon">🗑️</div>
+										<h5 class="data-action-title">Clear All Data</h5>
+										<p class="data-action-description">
+											Permanently delete everything
+										</p>
+										<button class="btn-danger" id="clearDataBtn">
+											Clear All
+										</button>
+									</div>
+								</div>
+
+								<!-- Data Stats -->
+								<div class="data-stats">
+									<div class="data-stat-item">
+										<span class="data-stat-label">Total Tasks:</span>
+										<span class="data-stat-value" id="totalTasksCount">0</span>
+									</div>
+									<div class="data-stat-item">
+										<span class="data-stat-label">Total Habits:</span>
+										<span class="data-stat-value" id="totalHabitsCount">0</span>
+									</div>
+									<div class="data-stat-item">
+										<span class="data-stat-label">Total Goals:</span>
+										<span class="data-stat-value" id="totalGoalsCount">0</span>
+									</div>
+									<div class="data-stat-item">
+										<span class="data-stat-label">Journal Entries:</span>
+										<span class="data-stat-value" id="totalJournalCount"
+											>0</span
+										>
+									</div>
+									<div class="data-stat-item">
+										<span class="data-stat-label">Storage Used:</span>
+										<span class="data-stat-value" id="storageUsed">0 KB</span>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 		<script src="script.js"></script>
 	</body>

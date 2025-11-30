@@ -146,6 +146,7 @@ function initializeApp() {
 	setupInsights();
 	setupGoals();
 	setupStatCardNavigation();
+	setupDataManagement();
 	updateXPDisplay();
 	updateStreaks();
 	checkDailyLogin();
@@ -1141,19 +1142,59 @@ function setupGoals() {
 			const targetGroup = document.getElementById('targetGroup');
 			const unitGroup = document.getElementById('unitGroup');
 			const deadlineGroup = document.getElementById('deadlineGroup');
+			const weeklyTargetGroup = document.getElementById('weeklyTargetGroup');
+			const milestonesGroup = document.getElementById('milestonesGroup');
+			const targetLabel = document.getElementById('targetLabel');
+			const targetInput = document.getElementById('goalTarget');
 
+			// Hide all first
+			targetGroup.style.display = 'none';
+			unitGroup.style.display = 'none';
+			deadlineGroup.style.display = 'none';
+			if (weeklyTargetGroup) weeklyTargetGroup.style.display = 'none';
+			if (milestonesGroup) milestonesGroup.style.display = 'none';
+
+			// Show based on type and update labels
 			if (type === 'numeric') {
 				targetGroup.style.display = 'block';
 				unitGroup.style.display = 'block';
 				deadlineGroup.style.display = 'block';
+				targetLabel.textContent = 'Target Amount';
+				targetInput.placeholder = 'e.g., 12';
 			} else if (type === 'habit') {
 				targetGroup.style.display = 'block';
 				unitGroup.style.display = 'none';
 				deadlineGroup.style.display = 'block';
+				targetLabel.textContent = 'Target Days';
+				targetInput.placeholder = 'e.g., 30';
 				document.getElementById('goalUnit').value = 'days';
 			} else if (type === 'deadline') {
 				targetGroup.style.display = 'none';
 				unitGroup.style.display = 'none';
+				deadlineGroup.style.display = 'block';
+			} else if (type === 'weekly') {
+				if (weeklyTargetGroup) weeklyTargetGroup.style.display = 'block';
+				unitGroup.style.display = 'block';
+				deadlineGroup.style.display = 'block';
+				// Weekly doesn't show target field, only weeklyTarget
+			} else if (type === 'yes-no') {
+				targetGroup.style.display = 'block';
+				targetLabel.textContent = 'Target Days in a Row';
+				targetInput.placeholder = 'e.g., 30';
+				targetInput.value = 30; // Default 30 days
+				unitGroup.style.display = 'none';
+				document.getElementById('goalUnit').value = 'days';
+				deadlineGroup.style.display = 'block';
+			} else if (type === 'percentage') {
+				targetGroup.style.display = 'block';
+				targetLabel.textContent = 'Target Percentage';
+				targetInput.placeholder = '100';
+				targetInput.value = 100;
+				unitGroup.style.display = 'none';
+				document.getElementById('goalUnit').value = '%';
+				deadlineGroup.style.display = 'block';
+			} else if (type === 'milestone') {
+				if (milestonesGroup) milestonesGroup.style.display = 'block';
 				deadlineGroup.style.display = 'block';
 			}
 		});
@@ -1168,27 +1209,58 @@ function setupGoals() {
 				.getElementById('goalDescription')
 				.value.trim();
 			const type = document.getElementById('goalType').value;
-			const target = parseInt(document.getElementById('goalTarget').value) || 0;
+			let target = parseInt(document.getElementById('goalTarget').value) || 0;
 			const unit = document.getElementById('goalUnit').value.trim();
 			const deadline = document.getElementById('goalDeadline').value;
 			const category = document.getElementById('goalCategory').value;
+
+			// NEW: Handle weekly target
+			const weeklyTargetEl = document.getElementById('weeklyTarget');
+			const weeklyTarget = weeklyTargetEl
+				? parseInt(weeklyTargetEl.value) || 0
+				: 0;
+
+			// NEW: Handle milestones
+			const milestonesEl = document.getElementById('milestones');
+			const milestonesText = milestonesEl ? milestonesEl.value : '';
+			const milestonesList = milestonesText
+				.split('\n')
+				.map((m) => m.trim())
+				.filter((m) => m.length > 0);
 
 			if (!title) {
 				showNotification('Please enter a goal title');
 				return;
 			}
 
-			if (type !== 'deadline' && !target) {
+			// Validation based on type
+			if (type === 'weekly' && !weeklyTarget) {
+				showNotification('Please enter times per week');
+				return;
+			}
+
+			if (type === 'milestone' && milestonesList.length === 0) {
+				showNotification('Please add at least one milestone');
+				return;
+			}
+
+			if (!['deadline', 'milestone', 'weekly'].includes(type) && !target) {
 				showNotification('Please enter a target');
 				return;
 			}
+
+			// Set defaults based on type
+			if (type === 'deadline') target = 1;
+			if (type === 'milestone') target = milestonesList.length;
+			if (type === 'yes-no') target = target || 30;
+			if (type === 'percentage') target = 100;
 
 			const goalData = {
 				id: editingGoalId || Date.now(),
 				title,
 				description,
 				type,
-				target: type === 'deadline' ? 1 : target,
+				target,
 				unit,
 				deadline,
 				category,
@@ -1198,12 +1270,20 @@ function setupGoals() {
 					? state.goals.find((g) => g.id === editingGoalId).createdAt
 					: new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
+				// NEW fields
+				weeklyTarget: weeklyTarget || null,
+				milestones: milestonesList.length > 0 ? milestonesList : null,
+				completedMilestones: [],
+				weeklyProgress: [],
 			};
 
 			if (editingGoalId) {
 				const index = state.goals.findIndex((g) => g.id === editingGoalId);
 				if (index !== -1) {
 					goalData.currentProgress = state.goals[index].currentProgress;
+					goalData.completedMilestones =
+						state.goals[index].completedMilestones || [];
+					goalData.weeklyProgress = state.goals[index].weeklyProgress || [];
 					state.goals[index] = goalData;
 				}
 				showNotification('Goal updated!');
@@ -1298,6 +1378,236 @@ function setupGoals() {
 	});
 }
 
+function setupDataManagement() {
+	const exportBtn = document.getElementById('exportDataBtn');
+	const importBtn = document.getElementById('importDataBtn');
+	const importInput = document.getElementById('importDataInput');
+	const clearBtn = document.getElementById('clearDataBtn');
+
+	// Export Data
+	if (exportBtn) {
+		exportBtn.addEventListener('click', exportData);
+	}
+
+	// Import Data
+	if (importBtn) {
+		importBtn.addEventListener('click', () => {
+			importInput.click();
+		});
+	}
+
+	if (importInput) {
+		importInput.addEventListener('change', importData);
+	}
+
+	// Clear All Data
+	if (clearBtn) {
+		clearBtn.addEventListener('click', clearAllData);
+	}
+
+	// Update data stats when settings modal opens
+	const settingsBtn = document.getElementById('settingsBtn');
+	if (settingsBtn) {
+		settingsBtn.addEventListener('click', updateDataStats);
+	}
+}
+
+function exportData() {
+	try {
+		// Gather all data
+		const exportData = {
+			version: '1.0',
+			exportDate: new Date().toISOString(),
+			data: {
+				todos: state.todos,
+				habits: state.habits,
+				journalEntries: state.journalEntries,
+				moods: state.moods,
+				energyLevels: state.energyLevels,
+				gratitudes: state.gratitudes,
+				goals: state.goals,
+				xp: state.xp,
+				level: state.level,
+				longestStreak: state.longestStreak,
+				currentStreak: state.currentStreak,
+				lastActiveDate: state.lastActiveDate,
+				theme: state.theme,
+			},
+		};
+
+		// Convert to JSON
+		const dataStr = JSON.stringify(exportData, null, 2);
+		const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+		// Create download link
+		const url = URL.createObjectURL(dataBlob);
+		const link = document.createElement('a');
+		link.href = url;
+
+		// Generate filename with date
+		const date = new Date().toISOString().split('T')[0];
+		link.download = `lyfocus-backup-${date}.json`;
+
+		// Trigger download
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+
+		showNotification('✅ Data exported successfully!');
+		awardXP(10, 'Data Backup');
+	} catch (error) {
+		console.error('Export failed:', error);
+		showNotification('❌ Export failed. Please try again.');
+	}
+}
+
+function importData(event) {
+	const file = event.target.files[0];
+	if (!file) return;
+
+	// Confirm import (will overwrite current data)
+	if (
+		!confirm(
+			'⚠️ This will replace ALL your current data with the backup. Continue?'
+		)
+	) {
+		event.target.value = ''; // Reset input
+		return;
+	}
+
+	const reader = new FileReader();
+
+	reader.onload = function (e) {
+		try {
+			const importedData = JSON.parse(e.target.result);
+
+			// Validate data structure
+			if (!importedData.version || !importedData.data) {
+				throw new Error('Invalid backup file format');
+			}
+
+			// Restore data
+			state.todos = importedData.data.todos || [];
+			state.habits = importedData.data.habits || [];
+			state.journalEntries = importedData.data.journalEntries || [];
+			state.moods = importedData.data.moods || [];
+			state.energyLevels = importedData.data.energyLevels || [];
+			state.gratitudes = importedData.data.gratitudes || [];
+			state.goals = importedData.data.goals || [];
+			state.xp = importedData.data.xp || 0;
+			state.level = importedData.data.level || 1;
+			state.longestStreak = importedData.data.longestStreak || 0;
+			state.currentStreak = importedData.data.currentStreak || 0;
+			state.lastActiveDate = importedData.data.lastActiveDate || null;
+			state.theme = importedData.data.theme || 'light';
+
+			// Save to localStorage
+			saveState();
+
+			// Refresh UI
+			renderAll();
+			updateXPDisplay();
+			updateStats();
+			applyTheme(state.theme);
+
+			showNotification('✅ Data imported successfully!');
+
+			// Reload page to ensure everything is fresh
+			setTimeout(() => {
+				location.reload();
+			}, 1000);
+		} catch (error) {
+			console.error('Import failed:', error);
+			showNotification('❌ Import failed. Invalid backup file.');
+		}
+	};
+
+	reader.readAsText(file);
+	event.target.value = ''; // Reset input
+}
+
+function clearAllData() {
+	// Triple confirmation for safety
+	const confirm1 = confirm(
+		'⚠️ WARNING: This will delete ALL your data permanently. Are you sure?'
+	);
+	if (!confirm1) return;
+
+	const confirm2 = confirm(
+		'🚨 LAST CHANCE: This action cannot be undone. Delete everything?'
+	);
+	if (!confirm2) return;
+
+	const confirm3 = prompt('Type "DELETE" to confirm permanent deletion:');
+	if (confirm3 !== 'DELETE') {
+		showNotification('Deletion cancelled.');
+		return;
+	}
+
+	try {
+		// Clear all localStorage
+		localStorage.clear();
+
+		// Reset state
+		state = {
+			todos: [],
+			habits: [],
+			journal: '',
+			journalEntries: [],
+			moods: [],
+			energyLevels: [],
+			gratitudes: [],
+			xp: 0,
+			level: 1,
+			longestStreak: 0,
+			currentStreak: 0,
+			lastActiveDate: null,
+			theme: 'light',
+			currentPage: 'overview',
+			customWidgets: [],
+			goals: [],
+		};
+
+		showNotification('🗑️ All data cleared.');
+
+		// Reload page
+		setTimeout(() => {
+			location.reload();
+		}, 1000);
+	} catch (error) {
+		console.error('Clear failed:', error);
+		showNotification('❌ Failed to clear data.');
+	}
+}
+
+function updateDataStats() {
+	// Update counts
+	const totalTasksCount = document.getElementById('totalTasksCount');
+	const totalHabitsCount = document.getElementById('totalHabitsCount');
+	const totalGoalsCount = document.getElementById('totalGoalsCount');
+	const totalJournalCount = document.getElementById('totalJournalCount');
+	const storageUsed = document.getElementById('storageUsed');
+
+	if (totalTasksCount) totalTasksCount.textContent = state.todos.length;
+	if (totalHabitsCount) totalHabitsCount.textContent = state.habits.length;
+	if (totalGoalsCount) totalGoalsCount.textContent = state.goals.length;
+	if (totalJournalCount)
+		totalJournalCount.textContent = state.journalEntries.length;
+
+	// Calculate storage used
+	if (storageUsed) {
+		let total = 0;
+		for (let key in localStorage) {
+			if (localStorage.hasOwnProperty(key)) {
+				total += localStorage[key].length + key.length;
+			}
+		}
+		const kb = (total / 1024).toFixed(2);
+		storageUsed.textContent = `${kb} KB`;
+	}
+}
+
 function renderGoals(filter = 'all') {
 	const goalsGrid = document.getElementById('goalsGrid');
 	if (!goalsGrid) return;
@@ -1344,6 +1654,167 @@ function renderGoals(filter = 'all') {
 			deleteBtn.addEventListener('click', () => deleteGoal(goal.id));
 		}
 	});
+}
+
+function getGoalTypeDisplay(goal) {
+	const progress = calculateProgress(goal);
+
+	switch (goal.type) {
+		case 'weekly':
+			const currentWeek = getCurrentWeekProgress(goal);
+			return `
+				<div class="goal-stats">
+					<div class="goal-stat">
+						<span class="goal-stat-value">${currentWeek}/${goal.weeklyTarget}</span>
+						<span class="goal-stat-label">Completed This Week</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.weeklyTarget}</span>
+						<span class="goal-stat-label">Times Per Week Goal</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${progress}%</span>
+						<span class="goal-stat-label">Overall Progress</span>
+					</div>
+				</div>
+			`;
+
+		case 'yes-no':
+			const streak = goal.currentProgress || 0;
+			return `
+				<div class="goal-stats">
+					<div class="goal-stat">
+						<span class="goal-stat-value">${streak}</span>
+						<span class="goal-stat-label">Days in a Row</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.target}</span>
+						<span class="goal-stat-label">Target Days</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${progress}%</span>
+						<span class="goal-stat-label">Complete</span>
+					</div>
+				</div>
+			`;
+
+		case 'milestone':
+			const completed = goal.completedMilestones?.length || 0;
+			return `
+				<div class="goal-milestones-display">
+					${goal.milestones
+						.map(
+							(milestone, index) => `
+						<div class="milestone-item ${
+							goal.completedMilestones?.includes(index) ? 'completed' : ''
+						}">
+							<span class="milestone-checkbox">${
+								goal.completedMilestones?.includes(index) ? '✓' : '○'
+							}</span>
+							<span class="milestone-text">${escapeHtml(milestone)}</span>
+						</div>
+					`
+						)
+						.join('')}
+				</div>
+				<div class="goal-stats">
+					<div class="goal-stat">
+						<span class="goal-stat-value">${completed} of ${goal.milestones.length}</span>
+						<span class="goal-stat-label">Milestones Completed</span>
+					</div>
+				</div>
+			`;
+
+		case 'percentage':
+			return `
+				<div class="goal-stats">
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.currentProgress || 0}%</span>
+						<span class="goal-stat-label">Current Progress</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.target}%</span>
+						<span class="goal-stat-label">Target Percentage</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${progress}%</span>
+						<span class="goal-stat-label">Complete</span>
+					</div>
+				</div>
+			`;
+
+		case 'numeric':
+			return `
+				<div class="goal-stats">
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.currentProgress || 0}</span>
+						<span class="goal-stat-label">Current ${
+							goal.unit ? capitalizeFirst(goal.unit) : 'Count'
+						}</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.target}</span>
+						<span class="goal-stat-label">Target ${
+							goal.unit ? capitalizeFirst(goal.unit) : 'Goal'
+						}</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${progress}%</span>
+						<span class="goal-stat-label">Progress</span>
+					</div>
+				</div>
+			`;
+
+		case 'habit':
+			return `
+				<div class="goal-stats">
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.currentProgress || 0}</span>
+						<span class="goal-stat-label">Days in a Row</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.target}</span>
+						<span class="goal-stat-label">Target Days</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${progress}%</span>
+						<span class="goal-stat-label">Complete</span>
+					</div>
+				</div>
+			`;
+
+		default:
+			return `
+				<div class="goal-stats">
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.currentProgress || 0}</span>
+						<span class="goal-stat-label">Current</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${goal.target}</span>
+						<span class="goal-stat-label">Target</span>
+					</div>
+					<div class="goal-stat">
+						<span class="goal-stat-value">${progress}%</span>
+						<span class="goal-stat-label">Progress</span>
+					</div>
+				</div>
+			`;
+	}
+}
+
+function getCurrentWeekProgress(goal) {
+	if (!goal.weeklyProgress) return 0;
+
+	const now = new Date();
+	const startOfWeek = new Date(now);
+	startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+	startOfWeek.setHours(0, 0, 0, 0);
+
+	return goal.weeklyProgress.filter((date) => {
+		const progressDate = new Date(date);
+		return progressDate >= startOfWeek;
+	}).length;
 }
 
 function createGoalCard(goal) {
@@ -1592,6 +2063,12 @@ function renderInsights() {
 	updateInsightStats();
 	renderWeeklyReview();
 	renderSmartInsights();
+	renderActivityHeatmap();
+	renderMoodChart();
+	renderEnergyChart();
+	renderProductivityChart();
+	renderGoalsProgress();
+	renderPerformanceStats();
 }
 
 function updateInsightStats() {
@@ -1752,6 +2229,360 @@ function renderSmartInsights() {
         `;
 		insightsList.appendChild(item);
 	});
+}
+
+// Activity Heatmap
+function renderActivityHeatmap() {
+	const heatmapEl = document.getElementById('activityHeatmap');
+	if (!heatmapEl) return;
+
+	// Get last 28 days (4 weeks)
+	const days = [];
+	const today = new Date();
+
+	for (let i = 27; i >= 0; i--) {
+		const date = new Date(today);
+		date.setDate(today.getDate() - i);
+		days.push(date);
+	}
+
+	// Calculate activity level for each day
+	const activityData = days.map((date) => {
+		const dateStr = getDateString(date);
+
+		let activity = 0;
+
+		// Count completed tasks
+		activity += state.todos.filter(
+			(t) => t.completed && getDateString(new Date(t.createdAt)) === dateStr
+		).length;
+
+		// Count completed habits
+		activity += state.habits.filter((h) => h.lastCompleted === dateStr).length;
+
+		// Check if journaled
+		if (
+			state.journalEntries.some(
+				(j) => getDateString(new Date(j.date)) === dateStr
+			)
+		) {
+			activity += 2;
+		}
+
+		// Check if logged mood/energy
+		if (state.moods.some((m) => m.date === dateStr)) activity += 1;
+		if (state.energyLevels.some((e) => e.date === dateStr)) activity += 1;
+
+		return { date, activity };
+	});
+
+	if (activityData.every((d) => d.activity === 0)) {
+		heatmapEl.innerHTML =
+			'<p class="empty-state">Track your activity for 7+ days to see the heatmap!</p>';
+		return;
+	}
+
+	heatmapEl.innerHTML = '';
+
+	activityData.forEach(({ date, activity }) => {
+		const day = document.createElement('div');
+
+		// Determine level (0-4)
+		let level = 0;
+		if (activity >= 8) level = 4;
+		else if (activity >= 6) level = 3;
+		else if (activity >= 4) level = 2;
+		else if (activity >= 1) level = 1;
+
+		day.className = `heatmap-day level-${level}`;
+		day.innerHTML = `
+			<div class="heatmap-day-name">${date.toLocaleDateString('en-US', {
+				weekday: 'short',
+			})}</div>
+			<div class="heatmap-day-number">${date.getDate()}</div>
+		`;
+		day.title = `${date.toLocaleDateString()}: ${activity} activities`;
+
+		heatmapEl.appendChild(day);
+	});
+}
+
+// Mood Chart (Pie Chart)
+let moodChartInstance = null;
+
+function renderMoodChart() {
+	const canvas = document.getElementById('moodChart');
+	if (!canvas) return;
+
+	if (state.moods.length === 0) {
+		const parent = canvas.parentElement;
+		parent.innerHTML =
+			'<p class="empty-state">Log moods to see distribution</p>';
+		return;
+	}
+
+	// Destroy existing chart
+	if (moodChartInstance) {
+		moodChartInstance.destroy();
+	}
+
+	// Count moods
+	const moodCounts = {
+		amazing: 0,
+		good: 0,
+		okay: 0,
+		bad: 0,
+		terrible: 0,
+	};
+
+	state.moods.forEach((m) => {
+		moodCounts[m.mood]++;
+	});
+
+	const ctx = canvas.getContext('2d');
+	moodChartInstance = new Chart(ctx, {
+		type: 'doughnut',
+		data: {
+			labels: ['Amazing', 'Good', 'Okay', 'Bad', 'Terrible'],
+			datasets: [
+				{
+					data: [
+						moodCounts.amazing,
+						moodCounts.good,
+						moodCounts.okay,
+						moodCounts.bad,
+						moodCounts.terrible,
+					],
+					backgroundColor: [
+						'#10b981',
+						'#6366f1',
+						'#f59e0b',
+						'#ef4444',
+						'#7f1d1d',
+					],
+				},
+			],
+		},
+		options: {
+			responsive: true,
+			plugins: {
+				legend: {
+					position: 'bottom',
+				},
+			},
+		},
+	});
+}
+
+// Energy Chart (Line Chart)
+let energyChartInstance = null;
+
+function renderEnergyChart() {
+	const canvas = document.getElementById('energyChart');
+	if (!canvas) return;
+
+	if (state.energyLevels.length === 0) {
+		const parent = canvas.parentElement;
+		parent.innerHTML =
+			'<p class="empty-state">Log energy levels to see trends</p>';
+		return;
+	}
+
+	// Destroy existing chart
+	if (energyChartInstance) {
+		energyChartInstance.destroy();
+	}
+
+	// Get last 7 days
+	const last7Days = [];
+	for (let i = 6; i >= 0; i--) {
+		const date = new Date();
+		date.setDate(date.getDate() - i);
+		last7Days.push(getDateString(date));
+	}
+
+	const energyData = last7Days.map((date) => {
+		const entry = state.energyLevels.find((e) => e.date === date);
+		return entry ? entry.level : null;
+	});
+
+	const ctx = canvas.getContext('2d');
+	energyChartInstance = new Chart(ctx, {
+		type: 'line',
+		data: {
+			labels: last7Days.map((d) =>
+				new Date(d).toLocaleDateString('en-US', { weekday: 'short' })
+			),
+			datasets: [
+				{
+					label: 'Energy Level',
+					data: energyData,
+					borderColor: '#6366f1',
+					backgroundColor: 'rgba(99, 102, 241, 0.1)',
+					tension: 0.4,
+					fill: true,
+				},
+			],
+		},
+		options: {
+			responsive: true,
+			scales: {
+				y: {
+					beginAtZero: true,
+					max: 10,
+				},
+			},
+			plugins: {
+				legend: {
+					display: false,
+				},
+			},
+		},
+	});
+}
+
+// Productivity Chart (Bar Chart)
+let productivityChartInstance = null;
+
+function renderProductivityChart() {
+	const canvas = document.getElementById('productivityChart');
+	if (!canvas) return;
+
+	// Destroy existing chart
+	if (productivityChartInstance) {
+		productivityChartInstance.destroy();
+	}
+
+	// Get last 30 days
+	const last30Days = [];
+	for (let i = 29; i >= 0; i--) {
+		const date = new Date();
+		date.setDate(date.getDate() - i);
+		last30Days.push(getDateString(date));
+	}
+
+	const tasksData = last30Days.map((date) => {
+		return state.todos.filter(
+			(t) => t.completed && getDateString(new Date(t.createdAt)) === date
+		).length;
+	});
+
+	const habitsData = last30Days.map((date) => {
+		return state.habits.filter((h) => h.lastCompleted === date).length;
+	});
+
+	const ctx = canvas.getContext('2d');
+	productivityChartInstance = new Chart(ctx, {
+		type: 'bar',
+		data: {
+			labels: last30Days.map((d) => new Date(d).getDate()),
+			datasets: [
+				{
+					label: 'Tasks',
+					data: tasksData,
+					backgroundColor: '#6366f1',
+				},
+				{
+					label: 'Habits',
+					data: habitsData,
+					backgroundColor: '#f59e0b',
+				},
+			],
+		},
+		options: {
+			responsive: true,
+			scales: {
+				y: {
+					beginAtZero: true,
+					ticks: {
+						stepSize: 1,
+					},
+				},
+			},
+		},
+	});
+}
+
+// Goals Progress Overview
+function renderGoalsProgress() {
+	const grid = document.getElementById('goalsProgressGrid');
+	if (!grid) return;
+
+	const activeGoals = state.goals.filter((g) => !g.completed);
+
+	if (activeGoals.length === 0) {
+		grid.innerHTML =
+			'<p class="empty-state">No active goals. Create goals to see progress!</p>';
+		return;
+	}
+
+	grid.innerHTML = '';
+
+	activeGoals.forEach((goal) => {
+		const progress = calculateProgress(goal);
+		const card = document.createElement('div');
+		card.className = 'goal-progress-card';
+		card.innerHTML = `
+			<div class="goal-progress-title">${escapeHtml(goal.title)}</div>
+			<div class="goal-progress-bar-mini">
+				<div class="goal-progress-fill-mini" style="width: ${progress}%"></div>
+			</div>
+			<div class="goal-progress-text-mini">${progress}% complete</div>
+		`;
+		grid.appendChild(card);
+	});
+}
+
+// Performance Stats
+function renderPerformanceStats() {
+	// Best Day
+	const completedByDay = {};
+	state.todos
+		.filter((t) => t.completed)
+		.forEach((todo) => {
+			const date = new Date(todo.createdAt);
+			const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+			completedByDay[dayName] = (completedByDay[dayName] || 0) + 1;
+		});
+
+	const days = Object.keys(completedByDay);
+	let bestDay = '-';
+	if (days.length > 0) {
+		bestDay = days.reduce((a, b) =>
+			completedByDay[a] > completedByDay[b] ? a : b
+		);
+	}
+
+	const bestDayEl = document.getElementById('bestDayValue');
+	if (bestDayEl) bestDayEl.textContent = bestDay;
+
+	// Average tasks per day
+	const totalDays =
+		state.todos.length > 0
+			? Math.ceil(
+					(Date.now() - new Date(state.todos[0].createdAt)) /
+						(1000 * 60 * 60 * 24)
+			  )
+			: 0;
+	const avgTasks =
+		totalDays > 0
+			? (state.todos.filter((t) => t.completed).length / totalDays).toFixed(1)
+			: 0;
+
+	const avgTasksEl = document.getElementById('avgTasksValue');
+	if (avgTasksEl) avgTasksEl.textContent = avgTasks;
+
+	// Completion rate
+	const completionRate =
+		state.todos.length > 0
+			? Math.round(
+					(state.todos.filter((t) => t.completed).length / state.todos.length) *
+						100
+			  )
+			: 0;
+
+	const completionRateEl = document.getElementById('completionRateValue');
+	if (completionRateEl) completionRateEl.textContent = completionRate + '%';
 }
 
 function generateSmartInsights() {
